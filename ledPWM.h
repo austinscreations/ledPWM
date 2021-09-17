@@ -90,8 +90,8 @@
  */
 class PWMDriver {
 public:
-  PWMDriver(const uint8_t addr);
-  void begin();
+  PWMDriver();
+  void begin(const uint8_t addr);
   void setPWMFreq(float freq);
   uint8_t getPWM(uint8_t num);
 
