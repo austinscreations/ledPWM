@@ -41,19 +41,16 @@
 #include <Wire.h>
 
 
-/*!
- *  @brief  Instantiates a new PCA9685 PWM driver chip with the I2C address on a
- * TwoWire interface
- *  @param  addr The 7-bit I2C address to locate this chip, default is 0x40
- */
-PWMDriver::PWMDriver(const uint8_t addr)
-    : _i2caddr(addr), _i2c(&Wire) {}
-
+PWMDriver::PWMDriver() {}
 
 /*!
  *  @brief  Setups the I2C interface and hardware
+ *  @param  addr The 7-bit I2C address to locate this chip, default is 0x40
  */
-void PWMDriver::begin() {
+void PWMDriver::begin(const uint8_t addr) {
+  _i2caddr = addr;
+  _i2c = &Wire;
+  
   _i2c->begin();
   reset();
     setPWMFreq(1526);
