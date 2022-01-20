@@ -1,28 +1,23 @@
 # ledPWM
 Building on my i2cRGB library, this library can control multiple types of strips
 
-2022-01-19 Now desigend to control esp32 and esp8266 pwm directly from GPIO up to 5ch of PWM
+2022-01-19 Updated to support both I2C and GPIO based PWM channels
 
 ```c++
 #include <ledPWM.h>                   // For PWM LED controller library
 
-#define I2C_ADDRESS 0x40              // PCA9685 I2C address
-
-//PWMDriver pwmDriver;                // For PWM control via PCA9685
-
-//ESP32_PWMDriver pwmDriver;          // For PWM control via ESP32 GPIO
-
-//ESP8266_PWMDriver pwmDriver;        // For PWM control VIA ESP8266 GPIO
-
+PWMDriver pwmDriver;                  // For PWM control via PCA9685
 
 void setup() {
 
-//pwmDriver.begin(I2C_ADDRESS);       // PCA9685 - i2c expandable board
+  // PCA9685 - I2C expandable board
+  pwmDriver.begin_i2c(0x40);
 
-//pwmDriver.begin(14,04,12,15,16);    // ESP32   - lilyGO Shield - .begin(GPIO in channel order)
+  // ESP32 - LilyGO Shield (GPIO in channel order)
+  pwmDriver.begin_gpio(14,04,12,15,16);
 
-//pwmDriver.begin(15,13,12,14,5);     // ESP8266 - D1 Mini board - .begin(GPIO in channel order)
-
+  // ESP8266 - D1 Mini Shield - (GPIO in channel order)
+  pwmDriver.begin_gpio(15,13,12,14,5);
 }
 ```
 
