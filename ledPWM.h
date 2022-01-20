@@ -33,14 +33,11 @@
  *  BSD license, all text above must be included in any redistribution
  */
 
-
-
 #ifndef ledPWM_H
 #define ledPWM_H
 
 #include <Arduino.h>
 #include <Wire.h>
-
 
 // REGISTER ADDRESSES
 #define PCA9685_MODE1 0x00      /**< Mode Register 1 */
@@ -79,10 +76,15 @@
 #define MODE2_INVRT 0x10  /**< Output logic state inverted */
 
 #define PCA9685_I2C_ADDRESS 0x40      /**< Default PCA9685 I2C Slave Address */
-#define FREQUENCY_OSCILLATOR 25000000 /**< Int. osc. frequency in datasheet */
+#define PCA_PWM_FREQ 1526
+#define PCA_OSCILLATOR_FREQ 25000000 /**< Int. osc. frequency in datasheet */
 
 #define PCA9685_PRESCALE_MIN 3   /**< minimum prescale value */
 #define PCA9685_PRESCALE_MAX 255 /**< maximum prescale value */
+
+// ESP32 PWM CONSTANTS
+#define ESP32_PWM_FREQ 5000
+#define ESP32_PWM_RESOLUTION 8
 
 /*!
  *  @brief  Class that stores state and functions for interacting with PCA9685
@@ -91,23 +93,15 @@
 class PWMDriver {
 public:
   PWMDriver();
-  void begin(const uint8_t addr);
-  void setPWMFreq(float freq);
-  uint8_t getPWM(uint8_t num);
 
-  void fadereset(uint8_t chans);
+  void begin_i2c(const uint8_t addr);
+  void begin_gpio(uint8_t g1, uint8_t g2, uint8_t g3, uint8_t g4, uint8_t g5);
 
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+  void colour(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
 
   void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1);
   void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
@@ -118,152 +112,52 @@ public:
   uint8_t complete[17] = {false};
 
 private:
-  void clear();
-  void setOscillatorFrequency(uint32_t freq);
-  void setPWM(uint8_t num, uint16_t on, uint16_t off);
-  void reset();
-  uint8_t _i2caddr;
+  bool _i2c_mode = false;
+  uint8_t _i2c_addr;
   TwoWire *_i2c;
-  void setOutputMode(bool totempole);
+
+  // TODO: should these be extended to support more than 5 GPIO channels?
+  const int channelArray[5] = {0,2,4,6,8};
+  int ledArray[5] = {0,0,0,0,0};
+
+  void clear();
 
   int calculateVal(int step, int val, int i);
   int calculateStep(int prevValue, int endValue);
 
-  uint32_t _oscillator_freq;
-  uint8_t read8(uint8_t addr);
-  void write8(uint8_t addr, uint8_t d);
+  void setPWMFreq(float pwm_freq, uint32_t oscillator_freq);
+  void setPWM(uint8_t num, uint16_t value);
+
+  void checkFadeComplete(uint8_t chans);
+  
+  uint8_t i2c_read8(uint8_t addr);
+  void i2c_write8(uint8_t addr, uint8_t d);
 
   int C1 = 0;
   int C2 = 0;
   int C3 = 0;
   int C4 = 0;
   int C5 = 0;
+  
   int i = 0;
+  
   int prev1[17] = {};
   int prev2[17] = {};
   int prev3[17] = {};
   int prev4[17] = {};
   int prev5[17] = {};
+  
   int c1Val[17] = {};
   int c2Val[17] = {}; 
   int c3Val[17] = {};
   int c4Val[17] = {};
   int c5Val[17] = {};
-  int step1;
-  int step2; 
-  int step3;
-  int step4;
-  int step5;
-};
-
-class ESP32_PWMDriver {
-public:
-  ESP32_PWMDriver();
-  void begin(uint8_t g1,uint8_t g2,uint8_t g3,uint8_t g4,uint8_t g5);
-
-  void fadereset(uint8_t chans);
-
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
   
-  uint8_t complete[6] = {false};
-
-private:
-  void clear();
-  const int channelarray[5] = {0,2,4,6,8};
-  int ledarray[5] = {0,0,0,0,0};
-  const int freq = 5000;
-  const int resolution = 8;
-
-  void setPWM(uint8_t num, uint8_t value);
-  int calculateVal(int step, int val, int i);
-  int calculateStep(int prevValue, int endValue);
-
-  int i = 0;
-  int prev1[6] = {};
-  int prev2[6] = {};
-  int prev3[6] = {};
-  int prev4[6] = {};
-  int prev5[6] = {};
-  int c1Val[6] = {};
-  int c2Val[6] = {}; 
-  int c3Val[6] = {};
-  int c4Val[6] = {};
-  int c5Val[6] = {};
   int step1;
   int step2; 
   int step3;
   int step4;
   int step5;
 };
-
-class ESP8266_PWMDriver {
-public:
-  ESP8266_PWMDriver();
-  void begin(uint8_t g1,uint8_t g2,uint8_t g3,uint8_t g4,uint8_t g5);
-
-  void fadereset(uint8_t chans);
-
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
-  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-  
-  uint8_t complete[6] = {false};
-
-private:
-  void clear();
-  int ledarray[5] = {0,0,0,0,0};
-
-  void setPWM(uint8_t num, uint8_t value);
-  int calculateVal(int step, int val, int i);
-  int calculateStep(int prevValue, int endValue);
-
-  int i = 0;
-  int prev1[6] = {};
-  int prev2[6] = {};
-  int prev3[6] = {};
-  int prev4[6] = {};
-  int prev5[6] = {};
-  int c1Val[6] = {};
-  int c2Val[6] = {}; 
-  int c3Val[6] = {};
-  int c4Val[6] = {};
-  int c5Val[6] = {};
-  int step1;
-  int step2; 
-  int step3;
-  int step4;
-  int step5;
-};
-
 
 #endif
