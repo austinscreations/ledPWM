@@ -1,4 +1,4 @@
-// h file v0.1.0
+// h file v0.2.0
 
 /*!
  *
@@ -117,8 +117,6 @@ public:
   
   uint8_t complete[17] = {false};
 
-
-
 private:
   void clear();
   void setOscillatorFrequency(uint32_t freq);
@@ -157,5 +155,115 @@ private:
   int step4;
   int step5;
 };
+
+class ESP32_PWMDriver {
+public:
+  ESP32_PWMDriver();
+  void begin(uint8_t g1,uint8_t g2,uint8_t g3,uint8_t g4,uint8_t g5);
+
+  void fadereset(uint8_t chans);
+
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+  
+  uint8_t complete[6] = {false};
+
+private:
+  void clear();
+  const int channelarray[5] = {0,2,4,6,8};
+  int ledarray[5] = {0,0,0,0,0};
+  const int freq = 5000;
+  const int resolution = 8;
+
+  void setPWM(uint8_t num, uint8_t value);
+  int calculateVal(int step, int val, int i);
+  int calculateStep(int prevValue, int endValue);
+
+  int i = 0;
+  int prev1[6] = {};
+  int prev2[6] = {};
+  int prev3[6] = {};
+  int prev4[6] = {};
+  int prev5[6] = {};
+  int c1Val[6] = {};
+  int c2Val[6] = {}; 
+  int c3Val[6] = {};
+  int c4Val[6] = {};
+  int c5Val[6] = {};
+  int step1;
+  int step2; 
+  int step3;
+  int step4;
+  int step5;
+};
+
+class ESP8266_PWMDriver {
+public:
+  ESP8266_PWMDriver();
+  void begin(uint8_t g1,uint8_t g2,uint8_t g3,uint8_t g4,uint8_t g5);
+
+  void fadereset(uint8_t chans);
+
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+  void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
+  
+  uint8_t complete[6] = {false};
+
+private:
+  void clear();
+  int ledarray[5] = {0,0,0,0,0};
+
+  void setPWM(uint8_t num, uint8_t value);
+  int calculateVal(int step, int val, int i);
+  int calculateStep(int prevValue, int endValue);
+
+  int i = 0;
+  int prev1[6] = {};
+  int prev2[6] = {};
+  int prev3[6] = {};
+  int prev4[6] = {};
+  int prev5[6] = {};
+  int c1Val[6] = {};
+  int c2Val[6] = {}; 
+  int c3Val[6] = {};
+  int c4Val[6] = {};
+  int c5Val[6] = {};
+  int step1;
+  int step2; 
+  int step3;
+  int step4;
+  int step5;
+};
+
 
 #endif

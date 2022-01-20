@@ -1,4 +1,4 @@
-// cpp file v0.1.0
+// cpp file v0.2.0
 
 /*!
  *
@@ -38,7 +38,9 @@
 
 
 #include "ledPWM.h"
+#include <Arduino.h>
 #include <Wire.h>
+
 
 
 PWMDriver::PWMDriver() {}
@@ -598,4 +600,785 @@ void PWMDriver::write8(uint8_t addr, uint8_t d) {
   _i2c->write(addr);
   _i2c->write(d);
   _i2c->endTransmission();
+}
+
+/*!
+ *  
+ * ESP8266
+ *  
+ */
+ ESP8266_PWMDriver::ESP8266_PWMDriver() {}
+
+void ESP8266_PWMDriver::begin(uint8_t g1,uint8_t g2,uint8_t g3,uint8_t g4,uint8_t g5) {
+ledarray[0] = g1;
+ledarray[1] = g2;
+ledarray[2] = g3;
+ledarray[3] = g4;
+ledarray[4] = g5;
+  
+clear();
+}
+
+void ESP8266_PWMDriver::setPWM(uint8_t num, uint8_t value) {
+  #if defined(ESP8266)
+  analogWrite(ledarray[num], value);
+  #endif
+}
+
+
+void ESP8266_PWMDriver::clear(){
+for (int x = 0; x <= 6; x++) {
+    setPWM(x, 0);
+    prev1[x] = 0;
+    prev2[x] = 0;
+    prev3[x] = 0;
+    prev4[x] = 0;
+    prev5[x] = 0;
+    c1Val[x] = 0;
+    c2Val[x] = 0;
+    c3Val[x] = 0;
+    c4Val[x] = 0;
+    c5Val[x] = 0;
+}}
+
+int ESP8266_PWMDriver::calculateStep(int prevValue, int endValue) {
+  int step = endValue - prevValue; // What's the overall gap?
+  if (step) {                      // If its non-zero, 
+    step = 1020/step;              //   divide by 1020
+  } 
+  return step;
+}
+
+
+/* The next function is calculateVal. When the loop value, i,
+*  reaches the step size appropriate for one of the
+*  colors, it increases or decreases the value of that color by 1. 
+*  (R, G, and B are each calculated separately.)
+*/
+
+int ESP8266_PWMDriver::calculateVal(int step, int val, int i) {
+
+  if ((step) && i % step == 0) { // If step is non-zero and its time to change a     value,
+    if (step > 0) {              //   increment the value if step is positive...
+      val += 1;           
+    } 
+    else if (step < 0) {         //   ...or decrement it if step is negative
+      val -= 1;
+    } 
+  }
+  // Defensive driving: make sure val stays in the range 0-255
+  if (val > 255) {
+    val = 255;
+  } 
+  else if (val < 0) {
+    val = 0;
+  }
+  return val;
+}
+
+void ESP8266_PWMDriver::fadereset(uint8_t chans){
+    i = 0;
+  prev1[chans] = c1Val[chans]; 
+  prev2[chans] = c2Val[chans]; 
+  prev3[chans] = c3Val[chans];
+  prev4[chans] = c4Val[chans];
+  prev5[chans] = c5Val[chans];
+}
+
+/*
+ * 5 channel strip control
+ */
+
+void ESP8266_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+  int step5 = calculateStep(prev5[chans], c5);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    c5Val[chans] = calculateVal(step5, c5Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+ setPWM((4+offsets), c5Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+  int step5 = calculateStep(prev5[chans], c5);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    c5Val[chans] = calculateVal(step5, c5Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+ setPWM((4+offsets), c5Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+ setPWM((2+offsets), c3);
+ setPWM((3+offsets), c4);
+ setPWM((4+offsets), c5);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+prev3[chans] = c3;
+prev4[chans] = c4;
+prev5[chans] = c5;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+c3Val[chans] = c3;
+c4Val[chans] = c4;
+c5Val[chans] = c5;
+}
+
+/*
+ * 4 channel strip control
+ */
+void ESP8266_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+ setPWM((2+offsets), c3);
+ setPWM((3+offsets), c4);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+prev3[chans] = c3;
+prev4[chans] = c4;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+c3Val[chans] = c3;
+c4Val[chans] = c4;
+}
+
+
+/*
+ * 3 channel strip control
+ */
+ void ESP8266_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+ setPWM((2+offsets), c3);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+prev3[chans] = c3;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+c3Val[chans] = c3;
+}
+
+/*
+ * 2 channel strip control
+ */
+void ESP8266_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+}
+
+/*
+ * single channel strip control
+ */
+void ESP8266_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP8266_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1){
+ setPWM((0+offsets), c1);
+
+prev1[chans] = c1;
+c1Val[chans] = c1;
+}
+
+/*!
+ *  
+ * ESP32
+ *  
+ */
+ 
+ESP32_PWMDriver::ESP32_PWMDriver() {}
+
+
+void ESP32_PWMDriver::begin(uint8_t g1,uint8_t g2,uint8_t g3,uint8_t g4,uint8_t g5) {
+ledarray[0] = g1;
+ledarray[1] = g2;
+ledarray[2] = g3;
+ledarray[3] = g4;
+ledarray[4] = g5;
+  
+ for(int y = 0; y < 6; y++)
+ { 
+  #if defined(ESP32)
+   ledcSetup(channelarray[y], freq, resolution);
+   ledcAttachPin(ledarray[y], channelarray[y]);
+  #endif
+ }
+
+clear();
+}
+
+void ESP32_PWMDriver::setPWM(uint8_t num, uint8_t value) {
+  #if defined(ESP32)
+  ledcWrite(channelarray[num], value);
+  #endif
+}
+
+/*
+ * LED PWM animation functions
+ */
+void ESP32_PWMDriver::clear(){
+for (int x = 0; x <= 6; x++) {
+    setPWM(x, 0);
+    prev1[x] = 0;
+    prev2[x] = 0;
+    prev3[x] = 0;
+    prev4[x] = 0;
+    prev5[x] = 0;
+    c1Val[x] = 0;
+    c2Val[x] = 0;
+    c3Val[x] = 0;
+    c4Val[x] = 0;
+    c5Val[x] = 0;
+}}
+
+int ESP32_PWMDriver::calculateStep(int prevValue, int endValue) {
+  int step = endValue - prevValue; // What's the overall gap?
+  if (step) {                      // If its non-zero, 
+    step = 1020/step;              //   divide by 1020
+  } 
+  return step;
+}
+
+
+/* The next function is calculateVal. When the loop value, i,
+*  reaches the step size appropriate for one of the
+*  colors, it increases or decreases the value of that color by 1. 
+*  (R, G, and B are each calculated separately.)
+*/
+
+int ESP32_PWMDriver::calculateVal(int step, int val, int i) {
+
+  if ((step) && i % step == 0) { // If step is non-zero and its time to change a     value,
+    if (step > 0) {              //   increment the value if step is positive...
+      val += 1;           
+    } 
+    else if (step < 0) {         //   ...or decrement it if step is negative
+      val -= 1;
+    } 
+  }
+  // Defensive driving: make sure val stays in the range 0-255
+  if (val > 255) {
+    val = 255;
+  } 
+  else if (val < 0) {
+    val = 0;
+  }
+  return val;
+}
+
+void ESP32_PWMDriver::fadereset(uint8_t chans){
+    i = 0;
+  prev1[chans] = c1Val[chans]; 
+  prev2[chans] = c2Val[chans]; 
+  prev3[chans] = c3Val[chans];
+  prev4[chans] = c4Val[chans];
+  prev5[chans] = c5Val[chans];
+}
+
+/*
+ * 5 channel strip control
+ */
+
+void ESP32_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+  int step5 = calculateStep(prev5[chans], c5);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    c5Val[chans] = calculateVal(step5, c5Val[chans], i);
+  
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+ setPWM((4+offsets), c5Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+  int step5 = calculateStep(prev5[chans], c5);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    c5Val[chans] = calculateVal(step5, c5Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+ setPWM((4+offsets), c5Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+ setPWM((2+offsets), c3);
+ setPWM((3+offsets), c4);
+ setPWM((4+offsets), c5);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+prev3[chans] = c3;
+prev4[chans] = c4;
+prev5[chans] = c5;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+c3Val[chans] = c3;
+c4Val[chans] = c4;
+c5Val[chans] = c5;
+}
+
+/*
+ * 4 channel strip control
+ */
+void ESP32_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+  
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+  int step4 = calculateStep(prev4[chans], c4);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+ setPWM((3+offsets), c4Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+ setPWM((2+offsets), c3);
+ setPWM((3+offsets), c4);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+prev3[chans] = c3;
+prev4[chans] = c4;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+c3Val[chans] = c3;
+c4Val[chans] = c4;
+}
+
+/*
+ * 3 channel strip control
+ */
+ void ESP32_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+  
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+  int step3 = calculateStep(prev3[chans], c3);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+ setPWM((2+offsets), c3Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+ setPWM((2+offsets), c3);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+prev3[chans] = c3;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+c3Val[chans] = c3;
+}
+
+/*
+ * 2 channel strip control
+ */
+ void ESP32_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+  
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+  int step2 = calculateStep(prev2[chans], c2); 
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+ setPWM((1+offsets), c2Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2){
+ setPWM((0+offsets), c1);
+ setPWM((1+offsets), c2);
+
+prev1[chans] = c1;
+prev2[chans] = c2;
+c1Val[chans] = c1;
+c2Val[chans] = c2;
+}
+
+/*
+ * single channel strip control
+ */
+ void ESP32_PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+  
+ setPWM((0+offsets), c1Val[chans]);
+
+if (i >= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::crossfadeBUTTON(uint8_t chans, uint8_t offsets, uint8_t c1) {
+
+  int step1 = calculateStep(prev1[chans], c1);
+
+    c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+    
+ setPWM((0+offsets), c1Val[chans]);
+
+if (i <= 1020){
+complete[chans] = {true};
+fadereset(chans);
+}else{
+  i++;
+}
+}
+
+void ESP32_PWMDriver::LED(uint8_t chans, uint8_t offsets, uint8_t c1){
+ setPWM((0+offsets), c1);
+
+prev1[chans] = c1;
+c1Val[chans] = c1;
 }
