@@ -44,6 +44,7 @@ PWMDriver::PWMDriver() {}
  *  @param  addr The 7-bit I2C address to locate this chip, default is 0x40
  */
 void PWMDriver::begin_i2c(const uint8_t addr) {
+  _i2c_mode = true;
   _i2c_addr = addr;
   _i2c = &Wire;
   _i2c->begin();

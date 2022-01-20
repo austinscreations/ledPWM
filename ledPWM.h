@@ -112,7 +112,7 @@ public:
   uint8_t complete[17] = {false};
 
 private:
-  bool _i2c_mode;
+  bool _i2c_mode = false;
   uint8_t _i2c_addr;
   TwoWire *_i2c;
 
