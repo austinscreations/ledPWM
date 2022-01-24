@@ -133,12 +133,6 @@ private:
   uint8_t i2c_read8(uint8_t addr);
   void i2c_write8(uint8_t addr, uint8_t d);
 
-  int C1 = 0;
-  int C2 = 0;
-  int C3 = 0;
-  int C4 = 0;
-  int C5 = 0;
-  
   int i = 0;
   
   int prev1[17] = {};

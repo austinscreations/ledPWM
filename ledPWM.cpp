@@ -116,6 +116,9 @@ void PWMDriver::setPWMFreq(float pwm_freq, uint32_t oscillator_freq) {
 
 void PWMDriver::setPWM(uint8_t num, uint16_t value) {
   if (_i2c_mode) {
+    // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
+    value = map(value, 0, 255, 0, 4095);
+
     _i2c->beginTransmission(_i2c_addr);
     _i2c->write(PCA9685_LED0_ON_L + 4 * num);
     _i2c->write(0);
@@ -134,20 +137,20 @@ void PWMDriver::setPWM(uint8_t num, uint16_t value) {
 
 
 void PWMDriver::clear() {
-  for (int x = 0; x <= 16; x++) {
-    setPWM(x,0);
+  for (int i = 0; i < 5; i++) {
+    setPWM(i,0);
     
-    prev1[x] = 0;
-    prev2[x] = 0;
-    prev3[x] = 0;
-    prev4[x] = 0;
-    prev5[x] = 0;
+    prev1[i] = 0;
+    prev2[i] = 0;
+    prev3[i] = 0;
+    prev4[i] = 0;
+    prev5[i] = 0;
     
-    c1Val[x] = 0;
-    c2Val[x] = 0;
-    c3Val[x] = 0;
-    c4Val[x] = 0;
-    c5Val[x] = 0;
+    c1Val[i] = 0;
+    c2Val[i] = 0;
+    c3Val[i] = 0;
+    c4Val[i] = 0;
+    c5Val[i] = 0;
   }
 }
 
@@ -205,18 +208,11 @@ void PWMDriver::checkFadeComplete(uint8_t chans) {
  * 5 channel strip control
  */
 void PWMDriver::colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5) {
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1,0,255,0,4095);
-  C2 = map(c2,0,255,0,4095);
-  C3 = map(c3,0,255,0,4095);
-  C4 = map(c4,0,255,0,4095);
-  C5 = map(c5,0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
-  setPWM((2+offsets),C3);
-  setPWM((3+offsets),C4);
-  setPWM((4+offsets),C5);
+  setPWM((0+offsets),c1);
+  setPWM((1+offsets),c2);
+  setPWM((2+offsets),c3);
+  setPWM((3+offsets),c4);
+  setPWM((4+offsets),c5);
 
   prev1[chans] = c1;
   prev2[chans] = c2;
@@ -244,18 +240,11 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   c4Val[chans] = calculateVal(step4, c4Val[chans], i);
   c5Val[chans] = calculateVal(step5, c5Val[chans], i);
 
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1Val[chans],0,255,0,4095);
-  C2 = map(c2Val[chans],0,255,0,4095);
-  C3 = map(c3Val[chans],0,255,0,4095);
-  C4 = map(c4Val[chans],0,255,0,4095);
-  C5 = map(c5Val[chans],0,255,0,4095);
-   
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
-  setPWM((2+offsets),C3);
-  setPWM((3+offsets),C4);
-  setPWM((4+offsets),C5);
+  setPWM((0+offsets),c1Val[chans]);
+  setPWM((1+offsets),c2Val[chans]);
+  setPWM((2+offsets),c3Val[chans]);
+  setPWM((3+offsets),c4Val[chans]);
+  setPWM((4+offsets),c5Val[chans]);
 
   checkFadeComplete(chans);
 }
@@ -264,16 +253,10 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
  * 4 channel strip control
  */
 void PWMDriver::colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1,0,255,0,4095);
-  C2 = map(c2,0,255,0,4095);
-  C3 = map(c3,0,255,0,4095);
-  C4 = map(c4,0,255,0,4095);
-  
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
-  setPWM((2+offsets),C3);
-  setPWM((3+offsets),C4);
+  setPWM((0+offsets),c1);
+  setPWM((1+offsets),c2);
+  setPWM((2+offsets),c3);
+  setPWM((3+offsets),c4);
 
   prev1[chans] = c1;
   prev2[chans] = c2;
@@ -297,16 +280,10 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   c3Val[chans] = calculateVal(step3, c3Val[chans], i);
   c4Val[chans] = calculateVal(step4, c4Val[chans], i);
 
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1Val[chans],0,255,0,4095);
-  C2 = map(c2Val[chans],0,255,0,4095);
-  C3 = map(c3Val[chans],0,255,0,4095);
-  C4 = map(c4Val[chans],0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
-  setPWM((2+offsets),C3);
-  setPWM((3+offsets),C4);
+  setPWM((0+offsets),c1Val[chans]);
+  setPWM((1+offsets),c2Val[chans]);
+  setPWM((2+offsets),c3Val[chans]);
+  setPWM((3+offsets),c4Val[chans]);
 
   checkFadeComplete(chans);
 }
@@ -315,14 +292,9 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
  * 3 channel strip control
  */
 void PWMDriver::colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3) {
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1,0,255,0,4095);
-  C2 = map(c2,0,255,0,4095);
-  C3 = map(c3,0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
-  setPWM((2+offsets),C3);
+  setPWM((0+offsets),c1);
+  setPWM((1+offsets),c2);
+  setPWM((2+offsets),c3);
 
   prev1[chans] = c1;
   prev2[chans] = c2;
@@ -342,14 +314,9 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   c2Val[chans] = calculateVal(step2, c2Val[chans], i);
   c3Val[chans] = calculateVal(step3, c3Val[chans], i);
 
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1Val[chans],0,255,0,4095);
-  C2 = map(c2Val[chans],0,255,0,4095);
-  C3 = map(c3Val[chans],0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
-  setPWM((2+offsets),C3);
+  setPWM((0+offsets),c1Val[chans]);
+  setPWM((1+offsets),c2Val[chans]);
+  setPWM((2+offsets),c3Val[chans]);
 
   checkFadeComplete(chans);
 }
@@ -358,12 +325,8 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
  * 2 channel strip control
  */
 void PWMDriver::colour(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2) {
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1,0,255,0,4095);
-  C2 = map(c2,0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
+  setPWM((0+offsets),c1);
+  setPWM((1+offsets),c2);
 
   prev1[chans] = c1;
   prev2[chans] = c2;
@@ -379,12 +342,8 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   c1Val[chans] = calculateVal(step1, c1Val[chans], i);
   c2Val[chans] = calculateVal(step2, c2Val[chans], i);
 
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1Val[chans],0,255,0,4095);
-  C2 = map(c2Val[chans],0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
-  setPWM((1+offsets),C2);
+  setPWM((0+offsets),c1Val[chans]);
+  setPWM((1+offsets),c2Val[chans]);
 
   checkFadeComplete(chans);
 }
@@ -393,10 +352,7 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
  * single channel strip control
  */
 void PWMDriver::colour(uint8_t chans, uint8_t offsets, uint8_t c1) {
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1,0,255,0,4095);
-
-  setPWM((0+offsets),C1);
+  setPWM((0+offsets),c1);
 
   prev1[chans] = c1;
 
@@ -408,10 +364,7 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1) {
 
   c1Val[chans] = calculateVal(step1, c1Val[chans], i);
 
-  // changes from a 255 value to a 16 bit value as the PWM driver outputs a 16bit pulse
-  C1 = map(c1Val[chans],0,255,0,4095);
- 
-  setPWM((0+offsets),C1);
+  setPWM((0+offsets),c1Val[chans]);
 
   checkFadeComplete(chans);
 }
