@@ -108,8 +108,8 @@ public:
   void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3);
   void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
   void crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5);
-  
-  uint8_t complete[17] = {false};
+
+  uint8_t fadeComplete[17] = {false};
 
 private:
   bool _i2c_mode = false;
@@ -122,7 +122,7 @@ private:
 
   void clear();
 
-  int calculateVal(int step, int val, int i);
+  int calculateVal(int step, int val);
   int calculateStep(int prevValue, int endValue);
 
   void setPWMFreq(float pwm_freq, uint32_t oscillator_freq);
@@ -133,7 +133,7 @@ private:
   uint8_t i2c_read8(uint8_t addr);
   void i2c_write8(uint8_t addr, uint8_t d);
 
-  int i = 0;
+  int fadeLoop = 0;
   
   int prev1[17] = {};
   int prev2[17] = {};
