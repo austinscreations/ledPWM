@@ -168,8 +168,8 @@ int PWMDriver::calculateStep(int prevValue, int endValue) {
 *  colors, it increases or decreases the value of that color by 1. 
 *  (R, G, and B are each calculated separately.)
 */
-int PWMDriver::calculateVal(int step, int val, int i) {
-  if ((step) && i % step == 0) { // If step is non-zero and its time to change a     value,
+int PWMDriver::calculateVal(int step, int val) {
+  if ((step) && fadeLoop % step == 0) { // If step is non-zero and its time to change a     value,
     if (step > 0) {              //   increment the value if step is positive...
       val += 1;           
     } 
@@ -188,18 +188,18 @@ int PWMDriver::calculateVal(int step, int val, int i) {
 }
 
 void PWMDriver::checkFadeComplete(uint8_t chans) {
-  if (i <= 1020) {
-    complete[chans] = {true};
-    
+  if (fadeLoop >= 1020) {
     prev1[chans] = c1Val[chans]; 
     prev2[chans] = c2Val[chans]; 
     prev3[chans] = c3Val[chans];
     prev4[chans] = c4Val[chans];
     prev5[chans] = c5Val[chans];
 
-    i = 0;
+    fadeComplete[chans] = {true};
+    fadeLoop = 0;
   } else {
-    i++;
+    fadeComplete[chans] = {false};
+    fadeLoop++;
   }
 }
 
@@ -234,19 +234,21 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   int step4 = calculateStep(prev4[chans], c4);
   int step5 = calculateStep(prev5[chans], c5);
 
-  c1Val[chans] = calculateVal(step1, c1Val[chans], i);
-  c2Val[chans] = calculateVal(step2, c2Val[chans], i);
-  c3Val[chans] = calculateVal(step3, c3Val[chans], i);
-  c4Val[chans] = calculateVal(step4, c4Val[chans], i);
-  c5Val[chans] = calculateVal(step5, c5Val[chans], i);
+  if (step1 || step2 || step3 || step4 || step5) {  
+    c1Val[chans] = calculateVal(step1, c1Val[chans]);
+    c2Val[chans] = calculateVal(step2, c2Val[chans]);
+    c3Val[chans] = calculateVal(step3, c3Val[chans]);
+    c4Val[chans] = calculateVal(step4, c4Val[chans]);
+    c5Val[chans] = calculateVal(step5, c5Val[chans]);
 
-  setPWM((0+offsets),c1Val[chans]);
-  setPWM((1+offsets),c2Val[chans]);
-  setPWM((2+offsets),c3Val[chans]);
-  setPWM((3+offsets),c4Val[chans]);
-  setPWM((4+offsets),c5Val[chans]);
+    setPWM((0+offsets),c1Val[chans]);
+    setPWM((1+offsets),c2Val[chans]);
+    setPWM((2+offsets),c3Val[chans]);
+    setPWM((3+offsets),c4Val[chans]);
+    setPWM((4+offsets),c5Val[chans]);
 
-  checkFadeComplete(chans);
+    checkFadeComplete(chans);
+  }
 }
 
 /*
@@ -275,17 +277,19 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   int step3 = calculateStep(prev3[chans], c3);
   int step4 = calculateStep(prev4[chans], c4);
 
-  c1Val[chans] = calculateVal(step1, c1Val[chans], i);
-  c2Val[chans] = calculateVal(step2, c2Val[chans], i);
-  c3Val[chans] = calculateVal(step3, c3Val[chans], i);
-  c4Val[chans] = calculateVal(step4, c4Val[chans], i);
+  if (step1 || step2 || step3 || step4) {  
+    c1Val[chans] = calculateVal(step1, c1Val[chans]);
+    c2Val[chans] = calculateVal(step2, c2Val[chans]);
+    c3Val[chans] = calculateVal(step3, c3Val[chans]);
+    c4Val[chans] = calculateVal(step4, c4Val[chans]);
 
-  setPWM((0+offsets),c1Val[chans]);
-  setPWM((1+offsets),c2Val[chans]);
-  setPWM((2+offsets),c3Val[chans]);
-  setPWM((3+offsets),c4Val[chans]);
+    setPWM((0+offsets),c1Val[chans]);
+    setPWM((1+offsets),c2Val[chans]);
+    setPWM((2+offsets),c3Val[chans]);
+    setPWM((3+offsets),c4Val[chans]);
 
-  checkFadeComplete(chans);
+    checkFadeComplete(chans);
+  }
 }
 
 /*
@@ -310,15 +314,17 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   int step2 = calculateStep(prev2[chans], c2); 
   int step3 = calculateStep(prev3[chans], c3);
 
-  c1Val[chans] = calculateVal(step1, c1Val[chans], i);
-  c2Val[chans] = calculateVal(step2, c2Val[chans], i);
-  c3Val[chans] = calculateVal(step3, c3Val[chans], i);
+  if (step1 || step2 || step3) {  
+    c1Val[chans] = calculateVal(step1, c1Val[chans]);
+    c2Val[chans] = calculateVal(step2, c2Val[chans]);
+    c3Val[chans] = calculateVal(step3, c3Val[chans]);
 
-  setPWM((0+offsets),c1Val[chans]);
-  setPWM((1+offsets),c2Val[chans]);
-  setPWM((2+offsets),c3Val[chans]);
+    setPWM((0+offsets),c1Val[chans]);
+    setPWM((1+offsets),c2Val[chans]);
+    setPWM((2+offsets),c3Val[chans]);
 
-  checkFadeComplete(chans);
+    checkFadeComplete(chans);
+  }
 }
 
 /*
@@ -339,13 +345,15 @@ void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1, uint8_t c2
   int step1 = calculateStep(prev1[chans], c1);
   int step2 = calculateStep(prev2[chans], c2);
 
-  c1Val[chans] = calculateVal(step1, c1Val[chans], i);
-  c2Val[chans] = calculateVal(step2, c2Val[chans], i);
+  if (step1 || step2) {  
+    c1Val[chans] = calculateVal(step1, c1Val[chans]);
+    c2Val[chans] = calculateVal(step2, c2Val[chans]);
 
-  setPWM((0+offsets),c1Val[chans]);
-  setPWM((1+offsets),c2Val[chans]);
+    setPWM((0+offsets),c1Val[chans]);
+    setPWM((1+offsets),c2Val[chans]);
 
-  checkFadeComplete(chans);
+    checkFadeComplete(chans);
+  }
 }
 
 /*
@@ -362,11 +370,13 @@ void PWMDriver::colour(uint8_t chans, uint8_t offsets, uint8_t c1) {
 void PWMDriver::crossfade(uint8_t chans, uint8_t offsets, uint8_t c1) {
   int step1 = calculateStep(prev1[chans], c1);
 
-  c1Val[chans] = calculateVal(step1, c1Val[chans], i);
+  if (step1) {  
+    c1Val[chans] = calculateVal(step1, c1Val[chans]);
 
-  setPWM((0+offsets),c1Val[chans]);
+    setPWM((0+offsets),c1Val[chans]);
 
-  checkFadeComplete(chans);
+    checkFadeComplete(chans);
+  }
 }
 
 /******************* Low level I2C interface */
